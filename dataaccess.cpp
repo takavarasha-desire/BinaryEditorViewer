@@ -9,6 +9,14 @@
 // File systems and storage devices allocation units are multiples 64KB
 #define BUFFER_SIZE 0x10000     // 64KB
 
+
+DataAccess::DataAccess(QObject *parent): QObject(parent)
+{
+    QBuffer *buf = new QBuffer(this);
+    setIODevice(*buf);
+}
+
+
 DataAccess::DataAccess(QIODevice &ioDevice, QObject *parent): QObject(parent)
 {
     setIODevice(ioDevice);

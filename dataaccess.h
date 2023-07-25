@@ -22,6 +22,7 @@ class DataAccess: public QObject
 {
     Q_OBJECT
 public:
+    DataAccess(QObject *parent);
     DataAccess(QIODevice &ioDevice, QObject *parent);
     bool setIODevice(QIODevice &ioDevice);
 

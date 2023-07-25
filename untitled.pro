@@ -9,11 +9,13 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    bineditorviewer.cpp \
     dataaccess.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
+    bineditorviewer.h \
     dataaccess.h \
     mainwindow.h
 
