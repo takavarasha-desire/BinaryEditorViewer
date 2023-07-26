@@ -29,6 +29,20 @@ BinEditorViewer::BinEditorViewer(QWidget *parent) : QAbstractScrollArea(parent)
     setFont(QFont("Monospace", 10));
 #endif
 
+    QFontMetrics metrics = fontMetrics();
+#if QT_VERSION > QT_VERSION_CHECK(5, 11, 0)
+    _pxCharWidth = metrics.horizontalAdvance(QLatin1Char('2'));
+#else
+    _pxCharWidth = metrics.width(QLatin1Char('2'));
+#endif
+    _pxCharHeight = metrics.height();
+    _pxGapAdr = _pxCharWidth / 2;
+    _pxGapAdrHex = _pxCharWidth;
+    _pxGapHexAscii = 2 * _pxCharWidth;
+    _pxCursorWidth = _pxCharHeight / 7;
+    _pxSelectionSub = _pxCharHeight / 5;
+    //viewport()->update();
+
     connect(&_cursorTimer, SIGNAL(timeout()), this, SLOT(updateCursor()));
     connect(verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(adjust()));
     connect(horizontalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(adjust()));
@@ -67,8 +81,8 @@ void BinEditorViewer::setCursorPosition(qint64 position)
     viewport()->update(_cursorRect);
 
     // 2. Check, if cursor in range?
-    if (position > (_chunks->size() * 2 - 1))
-        position = _chunks->size() * 2  - (_overwriteMode ? 1 : 0);
+    if (position > (_dataChunks->size() * 2 - 1))
+        position = _dataChunks->size() * 2  - (_overwriteMode ? 1 : 0);
 
     if (position < 0)
         position = 0;
@@ -136,7 +150,7 @@ void BinEditorViewer::setData(const QByteArray &ba)
 
 QByteArray BinEditorViewer::data()
 {
-    return _dataChunks->data(0, -1);
+    return _dataChunks->getData(0, -1);
 }
 
 void BinEditorViewer::setOverwriteMode(bool overwriteMode)
@@ -171,7 +185,7 @@ bool BinEditorViewer::setData(QIODevice &iODevice)
 
 QByteArray BinEditorViewer::dataAt(qint64 pos, qint64 count)
 {
-    return _dataChunks->data(pos, count);
+    return _dataChunks->getData(pos, count);
 }
 
 bool BinEditorViewer::write(QIODevice &iODevice, qint64 pos, qint64 count)
@@ -186,28 +200,15 @@ void BinEditorViewer::insertChar(qint64 index, char ch)
     refresh();
 }
 
-void BinEditorViewer::removeChar(qint64 index, qint64 len)
+void BinEditorViewer::removeChar(qint64 index)
 {
-    _dataChunks->remove(index, len);
+    _dataChunks->removeAt(index);
     refresh();
 }
 
 void BinEditorViewer::replaceChar(qint64 index, char ch)
 {
     _dataChunks->overwrite(index, ch);
-    refresh();
-}
-
-// ********************************************************************** ByteArray handling
-void BinEditorViewer::insertByteArray(qint64 pos, const QByteArray &ba)
-{
-    _dataChunks->insert(pos, ba);
-    refresh();
-}
-
-void BinEditorViewer::replaceByteArray(qint64 pos, qint64 len, const QByteArray &ba)
-{
-    _dataChunks->overwrite(pos, len, ba);
     refresh();
 }
 
@@ -232,7 +233,7 @@ bool BinEditorViewer::isModified()
 
 QString BinEditorViewer::selectedData()
 {
-    QByteArray ba = _dataChunks->data(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
+    QByteArray ba = _dataChunks->getData(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
     return ba;
 }
 
@@ -290,7 +291,7 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
     }
     if (event->matches(QKeySequence::MoveToEndOfDocument))
     {
-        setCursorPosition(_chunks->size() * 2 );
+        setCursorPosition(_dataChunks->size() * 2 );
         resetSelection(_cursorPosition);
     }
     if (event->matches(QKeySequence::MoveToStartOfDocument))
@@ -303,7 +304,7 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
     if (event->matches(QKeySequence::SelectAll))
     {
         resetSelection(0);
-        setSelection(2 * _chunks->size() + 1);
+        setSelection(2 * _dataChunks->size() + 1);
     }
     if (event->matches(QKeySequence::SelectNextChar))
     {
@@ -359,7 +360,7 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
     }
     if (event->matches(QKeySequence::SelectEndOfDocument))
     {
-        qint64 pos = _chunks->size() * 2;
+        qint64 pos = _dataChunks->size() * 2;
         setCursorPosition(pos);
         setSelection(pos);
     }
@@ -373,42 +374,6 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
     // Edit Commands
     if (!_readOnly)
     {
-        /* Cut */
-        if (event->matches(QKeySequence::Cut))
-        {
-            QByteArray ba = _chunks->data(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
-            for (qint64 idx = 32; idx < ba.size(); idx +=33)
-                ba.insert(idx, "\n");
-            QClipboard *clipboard = QApplication::clipboard();
-            clipboard->setText(ba);
-            if (_overwriteMode)
-            {
-                qint64 len = getSelectionEnd() - getSelectionBegin();
-                replace(getSelectionBegin(), (int)len, QByteArray((int)len, char(0)));
-            }
-            else
-            {
-                remove(getSelectionBegin(), getSelectionEnd() - getSelectionBegin());
-            }
-            setCursorPosition(2 * getSelectionBegin());
-            resetSelection(2 * getSelectionBegin());
-        } else
-
-        /* Paste */
-        if (event->matches(QKeySequence::Paste))
-        {
-            QClipboard *clipboard = QApplication::clipboard();
-            QByteArray ba = QByteArray().fromHex(clipboard->text().toLatin1());
-            if (_overwriteMode)
-            {
-                ba = ba.left(std::min<qint64>(ba.size(), (_chunks->size() - _bPosCurrent)));
-                replace(_bPosCurrent, ba.size(), ba);
-            }
-            else
-                insert(_bPosCurrent, ba);
-            setCursorPosition(_cursorPosition + 2 * ba.size());
-            resetSelection(getSelectionBegin());
-        } else
 
         /* Delete char */
         if (event->matches(QKeySequence::Delete))
@@ -419,19 +384,19 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
                 if (_overwriteMode)
                 {
                     QByteArray ba = QByteArray(getSelectionEnd() - getSelectionBegin(), char(0));
-                    replace(_bPosCurrent, ba.size(), ba);
+
                 }
                 else
                 {
-                    remove(_bPosCurrent, getSelectionEnd() - getSelectionBegin());
+                    removeChar(_bPosCurrent);
                 }
             }
             else
             {
                 if (_overwriteMode)
-                    replace(_bPosCurrent, char(0));
+                    replaceChar(_bPosCurrent, char(0));
                 else
-                    remove(_bPosCurrent, 1);
+                    removeChar(_bPosCurrent);
             }
             setCursorPosition(2 * _bPosCurrent);
             resetSelection(2 * _bPosCurrent);
@@ -447,25 +412,25 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
                 if (_overwriteMode)
                 {
                     QByteArray ba = QByteArray(getSelectionEnd() - getSelectionBegin(), char(0));
-                    replace(_bPosCurrent, ba.size(), ba);
+
                 }
                 else
                 {
-                    remove(_bPosCurrent, getSelectionEnd() - getSelectionBegin());
+                    removeChar(_bPosCurrent);
                 }
                 resetSelection(2 * _bPosCurrent);
             }
             else
             {
                 bool behindLastByte = false;
-                if ((_cursorPosition / 2) == _chunks->size())
+                if ((_cursorPosition / 2) == _dataChunks->size())
                     behindLastByte = true;
 
                 _bPosCurrent -= 1;
                 if (_overwriteMode)
-                    replace(_bPosCurrent, char(0));
+                    replaceChar(_bPosCurrent, char(0));
                 else
-                    remove(_bPosCurrent, 1);
+                    removeChar(_bPosCurrent);
 
                 if (!behindLastByte)
                     _bPosCurrent -= 1;
@@ -475,17 +440,6 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
             }
         } else
 
-        /* undo */
-        if (event->matches(QKeySequence::Undo))
-        {
-            undo();
-        } else
-
-        /* redo */
-        if (event->matches(QKeySequence::Redo))
-        {
-            redo();
-        } else
 
         if ((QApplication::keyboardModifiers() == Qt::NoModifier) ||
             (QApplication::keyboardModifiers() == Qt::KeypadModifier) ||
@@ -512,10 +466,10 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
                     if (_overwriteMode)
                     {
                         qint64 len = getSelectionEnd() - getSelectionBegin();
-                        replace(getSelectionBegin(), (int)len, QByteArray((int)len, char(0)));
+
                     } else
                     {
-                        remove(getSelectionBegin(), getSelectionEnd() - getSelectionBegin());
+                        removeChar(getSelectionEnd() - getSelectionBegin());
                         _bPosCurrent = getSelectionBegin();
                     }
                     setCursorPosition(2 * _bPosCurrent);
@@ -525,21 +479,21 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
                 // If insert mode, then insert a byte
                 if (_overwriteMode == false)
                     if ((_cursorPosition % 2) == 0)
-                        insert(_bPosCurrent, char(0));
+                        insertChar(_bPosCurrent, char(0));
 
                 // Change content
-                if (_chunks->size() > 0)
+                if (_dataChunks->size() > 0)
                 {
                     char ch = key;
                     if (!_editAreaIsAscii){
-                        QByteArray hexValue = _chunks->data(_bPosCurrent, 1).toHex();
+                        QByteArray hexValue = _dataChunks->getData(_bPosCurrent, 1).toHex();
                         if ((_cursorPosition % 2) == 0)
                             hexValue[0] = key;
                         else
                             hexValue[1] = key;
                         ch = QByteArray().fromHex(hexValue)[0];
                     }
-                    replace(_bPosCurrent, ch);
+                    replaceChar(_bPosCurrent, ch);
                     if (_editAreaIsAscii)
                         setCursorPosition(_cursorPosition + 2);
                     else
@@ -555,7 +509,7 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
     /* Copy */
     if (event->matches(QKeySequence::Copy))
     {
-        QByteArray ba = _chunks->data(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
+        QByteArray ba = _dataChunks->getData(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
         for (qint64 idx = 32; idx < ba.size(); idx +=33)
             ba.insert(idx, "\n");
         QClipboard *clipboard = QApplication::clipboard();
@@ -622,7 +576,7 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
         // draw some patterns if needed
         painter.fillRect(event->rect(), viewport()->palette().color(QPalette::Base));
         if (_addressArea)
-            painter.fillRect(QRect(-pxOfsX, event->rect().top(), _pxPosHexX - _pxGapAdrHex/2, height()), _addressAreaColor);
+            painter.fillRect(QRect(-pxOfsX, event->rect().top(), _pxPosHexX - _pxGapAdrHex/2, height()), Qt::gray);
         if (_asciiArea)
         {
             int linePos = _pxPosAsciiX - (_pxGapHexAscii / 2);
@@ -639,8 +593,8 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
             for (int row=0, pxPosY = _pxCharHeight; row <= (_dataShown.size()/_bytesPerLine); row++, pxPosY +=_pxCharHeight)
             {
                 address = QString("%1").arg(_bPosFirst + row*_bytesPerLine + _addressOffset, _addrDigits, 16, QChar('0'));
-                painter.setPen(QPen(_addressFontColor));
-                painter.drawText(_pxPosAdrX - pxOfsX, pxPosY, hexCaps() ? address.toUpper() : address);
+                painter.setPen(QPen(Qt::black));
+                painter.drawText(_pxPosAdrX - pxOfsX, pxPosY,address.toUpper());
             }
         }
 
@@ -658,7 +612,7 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
             for (int colIdx = 0; ((bPosLine + colIdx) < _dataShown.size() && (colIdx < _bytesPerLine)); colIdx++)
             {
                 QColor c = viewport()->palette().color(QPalette::Base);
-                painter.setPen(QPen(_hexFontColor));
+                painter.setPen(QPen(Qt::black));
 
                 qint64 posBa = _bPosFirst + bPosLine + colIdx;
                 if ((getSelectionBegin() <= posBa) && (getSelectionEnd() > posBa))
@@ -684,20 +638,21 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
                     r.setRect(pxPosX - _pxCharWidth, pxPosY - _pxCharHeight + _pxSelectionSub, 3*_pxCharWidth, _pxCharHeight);
                 painter.fillRect(r, c);
                 hex = _hexDataShown.mid((bPosLine + colIdx) * 2, 2);
-                painter.drawText(pxPosX, pxPosY, hexCaps()?hex.toUpper():hex);
+                painter.drawText(pxPosX, pxPosY, hex.toUpper());
                 pxPosX += 3*_pxCharWidth;
 
                 // render ascii value
                 if (_asciiArea)
                 {
-                    if (c == viewport()->palette().color(QPalette::Base))
-                        c = _asciiAreaColor;
+
+                    c = viewport()->palette().color(QPalette::Base);
+
                     int ch = (uchar)_dataShown.at(bPosLine + colIdx);
                     if ( ch > '~' || ch < ' ' )
                         ch = '.';
                     r.setRect(pxPosAsciiX2, pxPosY - _pxCharHeight + _pxSelectionSub, _pxCharWidth, _pxCharHeight);
                     painter.fillRect(r, c);
-                    painter.setPen(QPen(_asciiFontColor));
+                    painter.setPen(QPen(Qt::black));
                     painter.drawText(pxPosAsciiX2, pxPosY, QChar(ch));
                     pxPosAsciiX2 += _pxCharWidth;
                 }
@@ -736,14 +691,14 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
             }
             else
             {
-                painter.drawText(_pxCursorX - pxOfsX, _pxCursorY, hexCaps() ? _hexDataShown.mid(hexPositionInShowData, 1).toUpper() : _hexDataShown.mid(hexPositionInShowData, 1));
+                painter.drawText(_pxCursorX - pxOfsX, _pxCursorY, _hexDataShown.mid(hexPositionInShowData, 1).toUpper());
             }
     }
 
     // emit event, if size has changed
-    if (_lastEventSize != _chunks->size())
+    if (_lastEventSize != _dataChunks->size())
     {
-        _lastEventSize = _chunks->size();
+        _lastEventSize = _dataChunks->size();
         emit currentSizeChanged(_lastEventSize);
     }
 }
@@ -775,8 +730,8 @@ void BinEditorViewer::resetSelection(qint64 pos)
     pos = pos / 2 ;
     if (pos < 0)
         pos = 0;
-    if (pos > _chunks->size())
-        pos = _chunks->size();
+    if (pos > _dataChunks->size())
+        pos = _dataChunks->size();
 
     _bSelectionInit = pos;
     _bSelectionBegin = pos;
@@ -788,8 +743,8 @@ void BinEditorViewer::setSelection(qint64 pos)
     pos = pos / 2;
     if (pos < 0)
         pos = 0;
-    if (pos > _chunks->size())
-        pos = _chunks->size();
+    if (pos > _dataChunks->size())
+        pos = _dataChunks->size();
 
     if (pos >= _bSelectionInit)
     {
@@ -816,7 +771,7 @@ qint64 BinEditorViewer::getSelectionEnd()
 // ********************************************************************** Private utility functions
 void BinEditorViewer::init()
 {
-    setAddressOffset(0);
+
     resetSelection(0);
     setCursorPosition(0);
     verticalScrollBar()->setValue(0);
@@ -828,7 +783,7 @@ void BinEditorViewer::adjust()
     // recalc Graphics
     if (_addressArea)
     {
-        _addrDigits = addressWidth();
+        _addrDigits = _addressWidth;
         _pxPosHexX = _pxGapAdr + _addrDigits*_pxCharWidth + _pxGapAdrHex;
     }
     else
@@ -845,22 +800,22 @@ void BinEditorViewer::adjust()
 
     // set verticalScrollbar()
     _rowsShown = ((viewport()->height()-4)/_pxCharHeight);
-    int lineCount = (int)(_chunks->size() / (qint64)_bytesPerLine) + 1;
+    int lineCount = (int)(_dataChunks->size() / (qint64)_bytesPerLine) + 1;
     verticalScrollBar()->setRange(0, lineCount - _rowsShown);
     verticalScrollBar()->setPageStep(_rowsShown);
 
     int value = verticalScrollBar()->value();
     _bPosFirst = (qint64)value * _bytesPerLine;
     _bPosLast = _bPosFirst + (qint64)(_rowsShown * _bytesPerLine) - 1;
-    if (_bPosLast >= _chunks->size())
-        _bPosLast = _chunks->size() - 1;
+    if (_bPosLast >= _dataChunks->size())
+        _bPosLast = _dataChunks->size() - 1;
     readBuffers();
     setCursorPosition(_cursorPosition);
 }
 
 void BinEditorViewer::dataChangedPrivate(int)
 {
-    _modified = _undoStack->index() != 0;
+    _modified = true;
     adjust();
     emit dataChanged();
 }
@@ -873,7 +828,7 @@ void BinEditorViewer::refresh()
 
 void BinEditorViewer::readBuffers()
 {
-    _dataShown = _chunks->data(_bPosFirst, _bPosLast - _bPosFirst + _bytesPerLine + 1, &_markedShown);
+    _dataShown = _dataChunks->getData(_bPosFirst, _bPosLast - _bPosFirst + _bytesPerLine + 1, &_markedShown);
     _hexDataShown = QByteArray(_dataShown.toHex());
 }
 

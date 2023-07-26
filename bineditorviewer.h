@@ -33,17 +33,12 @@ public:
     void insertChar(qint64 pos, char ch);
 
     // char remove
-    void removeChar(qint64 pos, qint64 len=1);
+    void removeChar(qint64 pos);
 
 
     // overwrite char
     void replaceChar(qint64 pos, char ch);
 
-    // inserting byte array
-    void insertByteArray(qint64 pos, const QByteArray &ba);
-
-    // replace byte array
-    void replaceByteArray(qint64 pos, qint64 len, const QByteArray &ba);
 
     qint64 cursorPosition(QPoint point);
 
@@ -84,6 +79,7 @@ protected:
     void keyPressEvent(QKeyEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
     void mousePressEvent(QMouseEvent *event);
+    virtual bool focusNextPrevChild(bool next);
 
 private slots:
     void adjust();                              // recalc pixel positions
