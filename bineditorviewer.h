@@ -144,6 +144,8 @@ private:
 
 
         bool _editAreaIsAscii;
+        bool _editAreaIsBin;
+        bool _editAreaIsHex;
         int _addrDigits;
         bool _cursorblink;
         QBuffer _bData;

@@ -399,15 +399,10 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
             {
                 _bPosCurrent = getSelectionBegin();
                 setCursorPosition(2 * _bPosCurrent);
-                if (_overwriteMode)
-                {
-                    QByteArray ba = QByteArray(getSelectionEnd() - getSelectionBegin(), char(0));
 
-                }
-                else
-                {
+                if (_overwriteMode)
                     removeChar(_bPosCurrent);
-                }
+
                 resetSelection(2 * _bPosCurrent);
             }
             else
@@ -437,7 +432,7 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
             (QApplication::keyboardModifiers() == (Qt::AltModifier | Qt::ControlModifier)) ||
             (QApplication::keyboardModifiers() == Qt::GroupSwitchModifier))
         {
-            /* Hex and ascii input */
+            // Bin Hex and Ascii input
             int key = 0;
             QString text = event->text();
             if (!text.isEmpty())
@@ -446,6 +441,11 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
                     key = (uchar)text.at(0).toLatin1();
                 else
                     key = int(text.at(0).toLower().toLatin1());
+            }
+
+            if (_editAreaIsBin)
+            {
+
             }
 
             if ((((key >= '0' && key <= '9') || (key >= 'a' && key <= 'f')) && _editAreaIsAscii == false)
@@ -482,15 +482,6 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
 
     }
 
-    /* Copy */
-    if (event->matches(QKeySequence::Copy))
-    {
-        QByteArray ba = _dataChunks->getData(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
-        for (qint64 idx = 32; idx < ba.size(); idx +=33)
-            ba.insert(idx, "\n");
-        QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setText(ba);
-    }
 
     // Switch between insert/overwrite mode
     if ((event->key() == Qt::Key_Insert) && (event->modifiers() == Qt::NoModifier))
@@ -499,8 +490,15 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
         setCursorPosition(_cursorPosition);
     }
 
+    // switch from bin to hex edit
+    if (event->key() == Qt::Key_Tab && _editAreaIsBin)
+    {
+        _editAreaIsHex = true;
+        setCursorPosition(_cursorPosition);
+    }
+
     // switch from hex to ascii edit
-    if (event->key() == Qt::Key_Tab && !_editAreaIsAscii){
+    if (event->key() == Qt::Key_Tab && _editAreaIsHex){
         _editAreaIsAscii = true;
         setCursorPosition(_cursorPosition);
     }
@@ -508,6 +506,13 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
     // switch from ascii to hex edit
     if (event->key() == Qt::Key_Backtab  && _editAreaIsAscii){
         _editAreaIsAscii = false;
+        setCursorPosition(_cursorPosition);
+    }
+
+    // switch from hex to bin edit
+    if (event->key() == Qt::Key_Backtab && _editAreaIsHex)
+    {
+        _editAreaIsBin = true;
         setCursorPosition(_cursorPosition);
     }
 
@@ -690,7 +695,15 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
 
                 painter.drawText(_pxCursorX - pxOfsX, _pxCursorY, QChar(ch));
             }
-            else
+            else if(_editAreaIsBin)
+            {
+                int binPositionInShowData = hexPositionInShowData * 4;
+                int ch = (uchar)_dataShown.at(binPositionInShowData);
+                if (!(1 || 0))
+                    return;
+                painter.drawText(_pxCursorX - pxOfsX, _pxCursorY, QChar(ch));
+
+            } else
             {
                 painter.drawText(_pxCursorX - pxOfsX, _pxCursorY, _hexDataShown.mid(hexPositionInShowData, 1).toUpper());
             }
@@ -706,17 +719,69 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
 
 bool BinEditorViewer::focusNextPrevChild(bool next)
 {
+
     if (_addressArea)
     {
-        if ( (next && _editAreaIsAscii) || (!next && !_editAreaIsAscii ))
+        if ((next && _editAreaIsAscii) || (!next && !_editAreaIsAscii))
             return QWidget::focusNextPrevChild(next);
         else
-            return false;
+        {
+            if (_hexArea)
+                _editAreaIsBin = true;
+            else if (_binArea && !next)
+                _editAreaIsBin = false;
+            else if (_asciiArea && !next)
+                _editAreaIsAscii = true;
+            else if (_addressArea && !next)
+            {
+                _editAreaIsAscii = false;
+                _editAreaIsBin = false;
+            }
+            return true;
+        }
     }
-    else
+    else if (_hexArea && _editAreaIsBin)
     {
-        return QWidget::focusNextPrevChild(next);
+        if (_binArea && !next)
+            _editAreaIsBin = false;
+        else if (_asciiArea && !next)
+            _editAreaIsAscii = true;
+        else if (_addressArea && !next)
+        {
+            _editAreaIsAscii = false;
+            _editAreaIsBin = false;
+        }
+        return true;
     }
+    else if (_binArea && !_editAreaIsBin)
+    {
+        if (_hexArea && !next)
+            _editAreaIsBin = true;
+        else if (_asciiArea && !next)
+            _editAreaIsAscii = true;
+        else if (_addressArea && !next)
+        {
+            _editAreaIsAscii = false;
+            _editAreaIsBin = false;
+        }
+        return true;
+    }
+    else if (_asciiArea && _editAreaIsAscii && !next)
+    {
+        if (_binArea)
+            _editAreaIsBin = true;
+        else if (_hexArea)
+            _editAreaIsAscii = false;
+        else if (_addressArea)
+        {
+            _editAreaIsAscii = false;
+            _editAreaIsBin = false;
+        }
+        return true;
+    }
+
+    return QWidget::focusNextPrevChild(next);
+
 }
 
 // ********************************************************************** Handle selections
@@ -782,31 +847,10 @@ void BinEditorViewer::init()
 void BinEditorViewer::adjust()
 {
     // recalculating Graphics
-    if (_addressArea)
-    {
-        _addrDigits = _addressWidth;
-        _pxPosBinX = _pxGapAdr + _addrDigits*_pxCharWidth + _pxGapAdrBin;
-        _pxPosHexX = _pxPosBinX + _binCharsInLine * _pxCharWidth + _pxGapBinHex;
-        _pxPosAsciiX = _pxPosHexX + _hexCharsInLine * _pxCharWidth + _pxGapHexAscii;
-    }
-    else if (_binArea)
-    {
-        _pxPosBinX = _pxGapAdr + _addrDigits*_pxCharWidth + _pxGapAdrBin;
-        _pxPosAdrX = _pxGapAdr;
-        _pxPosHexX = _pxPosBinX + _binCharsInLine * _pxCharWidth + _pxGapBinHex;
-        _pxPosAsciiX = _pxPosHexX + _hexCharsInLine * _pxCharWidth + _pxGapHexAscii;
-    } else if (_hexArea)
-    {
-        _pxPosBinX = _pxGapAdr + _addrDigits*_pxCharWidth + _pxGapAdrBin;
-        _pxPosAdrX = _pxGapAdr;
-        _pxPosHexX = _pxPosBinX + _binCharsInLine * _pxCharWidth + _pxGapBinHex;
-        _pxPosAsciiX = _pxPosHexX + _hexCharsInLine * _pxCharWidth + _pxGapHexAscii;
 
-    } else
-    {
-
-    }
-
+    _addrDigits = _addressWidth;
+    _pxPosBinX = _pxGapAdr + _addrDigits*_pxCharWidth + _pxGapAdrBin;
+    _pxPosHexX = _pxPosBinX + _binCharsInLine * _pxCharWidth + _pxGapBinHex;
     _pxPosAsciiX = _pxPosHexX + _hexCharsInLine * _pxCharWidth + _pxGapHexAscii;
 
     // setting horizontalScrollBar()
