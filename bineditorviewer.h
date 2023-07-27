@@ -101,34 +101,39 @@ private:
     void readBuffers();
 
 
-    // Name convention: pixel positions start with _px
+    // _px for pixel positions
         int _pxCharWidth, _pxCharHeight;            // char dimensions (dependend on font)
+        int _pxPosBinX;
         int _pxPosHexX;                             // X-Pos of HeaxArea
         int _pxPosAdrX;                             // X-Pos of Address Area
         int _pxPosAsciiX;                           // X-Pos of Ascii Area
         int _pxGapAdr;                              // gap left from AddressArea
-        int _pxGapAdrHex;                           // gap between AddressArea and HexAerea
+        int _pxGapAdrBin;
+        int _pxGapBinHex;
         int _pxGapHexAscii;                         // gap between HexArea and AsciiArea
         int _pxCursorWidth;                         // cursor width
         int _pxSelectionSub;                        // offset selection rect
         int _pxCursorX;                             // current cursor pos
         int _pxCursorY;                             // current cursor pos
 
-        // Name convention: absolute byte positions in chunks start with _b
-        qint64 _bSelectionBegin;                    // first position of Selection
-        qint64 _bSelectionEnd;                      // end of Selection
-        qint64 _bSelectionInit;                     // memory position of Selection
-        qint64 _bPosFirst;                          // position of first byte shown
-        qint64 _bPosLast;                           // position of last byte shown
-        qint64 _bPosCurrent;                        // current position
+        // _b for absolute byte positions in _dataChunsk
+        qint64 _bSelectionBegin;
+        qint64 _bSelectionEnd;
+        qint64 _bSelectionInit;
+        qint64 _bPosFirst;
+        qint64 _bPosLast;
+        qint64 _bPosCurrent;
 
-        // variables to store the property values
-        bool _addressArea;                          // left area of QHexEdit
+
+        bool _addressArea;
         int _addressWidth;
         bool _asciiArea;
+        bool _binArea;
+        bool _hexArea;
         qint64 _addressOffset;
         int _bytesPerLine;
         int _hexCharsInLine;
+        int _binCharsInLine;
         bool _highlighting;
         bool _overwriteMode;
         QBrush _brushSelection;
@@ -137,22 +142,22 @@ private:
         QPen _penHighlighted;
         bool _readOnly;
 
-        // other variables
-        bool _editAreaIsAscii;                      // flag about the ascii mode edited
-        int _addrDigits;                            // real no of addressdigits, may be > addressWidth
-        bool _blink;                                // help get cursor blinking
-        QBuffer _bData;                             // buffer, when setup with QByteArray
-        DataAccess *_dataChunks;                            // IODevice based access to data
-        QTimer _cursorTimer;                        // for blinking cursor
-        qint64 _cursorPosition;                     // absolute position of cursor, 1 Byte == 2 tics
-        QRect _cursorRect;                          // physical dimensions of cursor
-        QByteArray _data;                           // QHexEdit's data, when setup with QByteArray
-        QByteArray _dataShown;                      // data in the current View
-        QByteArray _hexDataShown;                   // data in view, transformed to hex
-        qint64 _lastEventSize;                      // size, which was emitted last time
-        QByteArray _markedShown;                    // marked data in view
-        bool _modified;                             // Is any data in editor modified?
-        int _rowsShown;                             // lines of text shown
+
+        bool _editAreaIsAscii;
+        int _addrDigits;
+        bool _cursorblink;
+        QBuffer _bData;
+        DataAccess *_dataChunks;
+        QTimer _cursorTimer;
+        qint64 _cursorPosition;
+        QRect _cursorRect;
+        QByteArray _data;
+        QByteArray _dataShown;
+        QByteArray _hexDataShown;
+        qint64 _lastEventSize;
+        QByteArray _markedShown;
+        bool _modified;
+        int _rowsShown;
 
 
 

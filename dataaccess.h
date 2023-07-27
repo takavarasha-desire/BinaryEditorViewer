@@ -35,8 +35,8 @@ public:
     bool dataChanged(qint64 pos);
 
     // Char manipulations
-    bool insert(qint64 pos, char b);
-    bool overwrite(qint64 pos, char b);
+    bool insertChar(qint64 pos, char b);
+    bool overwriteChar(qint64 pos, char b);
     bool removeAt(qint64 pos);
 
     // Utility functions

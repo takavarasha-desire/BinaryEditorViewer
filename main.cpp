@@ -13,10 +13,10 @@ int main(int argc, char *argv[])
     parser.addPositionalArgument("file", "File to open");
     parser.addHelpOption();
     parser.process(app);
-    MainWindow *mainWin = new MainWindow;
+    MainWindow *mainWindow = new MainWindow;
     if(!parser.positionalArguments().isEmpty())
-        mainWin->loadFile(parser.positionalArguments().at(0));
-    mainWin->show();
+        mainWindow->loadFile(parser.positionalArguments().at(0));
+    mainWindow->show();
 
     return app.exec();
 }

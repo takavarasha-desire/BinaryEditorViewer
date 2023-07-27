@@ -16,27 +16,21 @@
 #include <QSettings>
 
 
-/*****************************************************************************/
-/* Public methods */
-/*****************************************************************************/
 MainWindow::MainWindow()
 {
     init();
     setCurrentFile("");
 }
 
-/*****************************************************************************/
-/* Protected methods */
-/*****************************************************************************/
+// Protected
 void MainWindow::closeEvent(QCloseEvent *)
 {
     writeSettings();
 }
 
 
-/*****************************************************************************/
-/* Private Slots */
-/*****************************************************************************/
+// Private Slots
+
 void MainWindow::about()
 {
    QMessageBox::about(this, tr("About Binary Editor"),
@@ -96,10 +90,8 @@ void MainWindow::setSize(qint64 size)
     lbSize->setText(QString("%1").arg(size));
 }
 
+// Private Methods
 
-/*****************************************************************************/
-/* Private Methods */
-/*****************************************************************************/
 void MainWindow::init()
 {
     setAttribute(Qt::WA_DeleteOnClose);
@@ -223,8 +215,8 @@ void MainWindow::loadFile(const QString &fileName)
 void MainWindow::readSettings()
 {
     QSettings settings;
-    QPoint pos = settings.value("pos", QPoint(200, 200)).toPoint();
-    QSize size = settings.value("size", QSize(610, 460)).toSize();
+    QPoint pos = settings.value("pos", QPoint(100, 100)).toPoint();
+    QSize size = settings.value("size", QSize(1200, 600)).toSize();
     move(pos);
     resize(size);
 

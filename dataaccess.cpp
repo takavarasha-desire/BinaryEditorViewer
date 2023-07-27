@@ -74,10 +74,6 @@ QByteArray DataAccess::getData(qint64 pos, qint64 maxSize, QByteArray *highlight
         bool dataChunksLoopOngoing = true;
         while ((dataChunkIdx < _dataChunks.count()) && dataChunksLoopOngoing)
         {
-            // In this section, we track changes before our required data and
-            // we take the editdet data, if availible. ioDelta is a difference
-            // counter to justify the read pointer to the original data, if
-            // data in between was deleted or inserted.
 
             dataChunk = _dataChunks[dataChunkIdx];
             if (dataChunk.absPos > pos)
@@ -170,7 +166,7 @@ bool DataAccess::dataChanged(qint64 pos)
 
 // ***************************************** Char manipulations
 
-bool DataAccess::insert(qint64 pos, char b)
+bool DataAccess::insertChar(qint64 pos, char b)
 {
     if ((pos < 0) || (pos > _size))
         return false;
@@ -189,7 +185,7 @@ bool DataAccess::insert(qint64 pos, char b)
     return true;
 }
 
-bool DataAccess::overwrite(qint64 pos, char b)
+bool DataAccess::overwriteChar(qint64 pos, char b)
 {
     if ((pos < 0) || (pos >= _size))
         return false;
