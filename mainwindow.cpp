@@ -215,8 +215,8 @@ void MainWindow::loadFile(const QString &fileName)
 void MainWindow::readSettings()
 {
     QSettings settings;
-    QPoint pos = settings.value("pos", QPoint(100, 100)).toPoint();
-    QSize size = settings.value("size", QSize(1200, 600)).toSize();
+    QPoint pos = settings.value("pos", QPoint(70, 100)).toPoint();
+    QSize size = settings.value("size", QSize(1400, 600)).toSize();
     move(pos);
     resize(size);
 

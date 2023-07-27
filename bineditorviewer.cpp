@@ -14,6 +14,7 @@ BinEditorViewer::BinEditorViewer(QWidget *parent) : QAbstractScrollArea(parent)
     , _addressWidth(8)
     , _asciiArea(true)
     , _binArea(true)
+    , _hexArea(true)
     , _bytesPerLine(12)
     , _hexCharsInLine(35)
     , _binCharsInLine(107)
@@ -44,7 +45,7 @@ BinEditorViewer::BinEditorViewer(QWidget *parent) : QAbstractScrollArea(parent)
     _pxGapHexAscii = 2 * _pxCharWidth;
     _pxCursorWidth = _pxCharHeight / 7;
     _pxSelectionSub = _pxCharHeight / 5;
-    viewport()->update();
+
 
     connect(&_cursorTimer, SIGNAL(timeout()), this, SLOT(updateCursor()));
     connect(verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(adjust()));
@@ -552,8 +553,7 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
         painter.fillRect(event->rect(), viewport()->palette().color(QPalette::Base));
         if (_addressArea)
             painter.fillRect(QRect(-pxOfsX, event->rect().top(), _pxPosBinX - _pxGapAdrBin/2, height()), Qt::gray);
-        if (_binArea)
-            painter.drawLine(-pxOfsX, event->rect().top(), pxOfsX, height());
+
 
         if (_hexArea)
         {
@@ -583,8 +583,8 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
             }
         }
 
-        // paint hex and ascii area
-        QPen colStandard = QPen(viewport()->palette().color(QPalette::WindowText));
+        // paint bin, hex and ascii area
+        //QPen colStandard = QPen(viewport()->palette().color(QPalette::WindowText));
 
         painter.setBackgroundMode(Qt::TransparentMode);
 
@@ -594,7 +594,7 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
 
             int pxPosX = _pxPosHexX  - pxOfsX;
             int pxPosBinX2 = _pxPosBinX - pxOfsX;
-            int pxPosAsciiX2 = _pxPosAsciiX  - pxOfsX;
+            int pxPosAsciiX2 = _pxPosAsciiX - pxOfsX;
             qint64 bPosLine = row * _bytesPerLine;
             for (int colIdx = 0; ((bPosLine + colIdx) < _dataShown.size() && (colIdx < _bytesPerLine)); colIdx++)
             {
@@ -628,39 +628,33 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
                 painter.drawText(pxPosX, pxPosY, hex.toUpper());
                 pxPosX += 3*_pxCharWidth;
 
-                // render ascii value
-                if (_asciiArea)
-                {
-
-                    c = viewport()->palette().color(QPalette::Base);
-
-                    int ch = (uchar)_dataShown.at(bPosLine + colIdx);
-                    if ( ch > '~' || ch < ' ' )
-                        ch = '.';
-                    r.setRect(pxPosAsciiX2, pxPosY - _pxCharHeight + _pxSelectionSub, _pxCharWidth, _pxCharHeight);
-                    painter.fillRect(r, c);
-                    painter.setPen(QPen(Qt::black));
-                    painter.drawText(pxPosAsciiX2, pxPosY, QChar(ch));
-                    pxPosAsciiX2 += _pxCharWidth;
-                }
-
                 // render binary value
 
                 if (_binArea)
                 {
+                    QRect rb;
                     uchar byte = (uchar)_dataShown.at(bPosLine + colIdx);
 
-                    painter.fillRect(r, c);
+                    painter.fillRect(rb, c);
                     QString bin = QString::number(byte, 2).rightJustified(8, '0'); // Convert byte to binary string
                     painter.drawText(pxPosBinX2, pxPosY, bin);
                     pxPosBinX2 += 9 * _pxCharWidth; // Move the next position for rendering
                 }
 
+                // render ascii value
+                if (_asciiArea)
+                {
+                    QRect ra;
 
-
-
-
-
+                    int ch = (uchar)_dataShown.at(bPosLine + colIdx);
+                    if ( ch > '~' || ch < ' ' )
+                        ch = '.';
+                    ra.setRect(pxPosAsciiX2, pxPosY - _pxCharHeight + _pxSelectionSub, _pxCharWidth, _pxCharHeight);
+                    painter.fillRect(ra, c);
+                    painter.setPen(QPen(Qt::black));
+                    painter.drawText(pxPosAsciiX2, pxPosY, QChar(ch));
+                    pxPosAsciiX2 += _pxCharWidth;
+                }
 
 
             }
@@ -803,11 +797,17 @@ void BinEditorViewer::adjust()
         _pxPosAsciiX = _pxPosHexX + _hexCharsInLine * _pxCharWidth + _pxGapHexAscii;
     } else if (_hexArea)
     {
+        _pxPosBinX = _pxGapAdr + _addrDigits*_pxCharWidth + _pxGapAdrBin;
+        _pxPosAdrX = _pxGapAdr;
+        _pxPosHexX = _pxPosBinX + _binCharsInLine * _pxCharWidth + _pxGapBinHex;
+        _pxPosAsciiX = _pxPosHexX + _hexCharsInLine * _pxCharWidth + _pxGapHexAscii;
 
     } else
     {
 
     }
+
+    _pxPosAsciiX = _pxPosHexX + _hexCharsInLine * _pxCharWidth + _pxGapHexAscii;
 
     // setting horizontalScrollBar()
     int pxWidth = _pxPosAsciiX;
