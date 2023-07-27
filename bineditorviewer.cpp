@@ -699,11 +699,14 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
             {
                 int binPositionInShowData = hexPositionInShowData * 4;
                 int ch = (uchar)_dataShown.at(binPositionInShowData);
-                if (!(1 || 0))
-                    return;
-                painter.drawText(_pxCursorX - pxOfsX, _pxCursorY, QChar(ch));
+                if ( ch != '0' && ch != '1')
+                    ch = '0';
 
-            } else
+                QString bin = QString::number(ch - '0', 2).rightJustified(8, '0'); // Convert to binary string (ch - '0' to get the integer value of '0' or '1')
+
+                painter.drawText(_pxCursorX - pxOfsX, _pxCursorY, bin);
+
+            } else if(_editAreaIsHex)
             {
                 painter.drawText(_pxCursorX - pxOfsX, _pxCursorY, _hexDataShown.mid(hexPositionInShowData, 1).toUpper());
             }
