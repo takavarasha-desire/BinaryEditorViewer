@@ -221,8 +221,6 @@ void MainWindow::readSettings()
     resize(size);
 
     binEditor->setOverwriteMode(settings.value("OverwriteMode").toBool());
-    binEditor->setReadOnly(settings.value("ReadOnly").toBool());
-
 
 
 }

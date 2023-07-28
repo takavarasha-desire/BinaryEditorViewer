@@ -46,13 +46,8 @@ public:
 
     bool isModified();
 
-    bool isReadOnly();
-    void setReadOnly(bool readOnly);
-
     void setCursorPosition(std::size_t position);
     std::size_t cursorPosition();
-
-    QString selectedData();
 
 
     bool overwriteMode();
@@ -129,12 +124,8 @@ private:
         int _bytesPerLine;
         int _hexCharsInLine;
         int _binCharsInLine;
-        bool _highlighting;
         bool _overwriteMode;
-        QBrush _brushSelection;
-        QPen _penSelection;
-        QBrush _brushHighlighted;
-        QPen _penHighlighted;
+
         bool _readOnly;
 
 

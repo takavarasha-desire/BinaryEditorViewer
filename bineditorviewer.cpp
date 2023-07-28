@@ -18,12 +18,11 @@ BinEditorViewer::BinEditorViewer(QWidget *parent) : QAbstractScrollArea(parent)
     , _bytesPerLine(12)
     , _hexCharsInLine(35)
     , _binCharsInLine(107)
-    , _highlighting(true)
     , _overwriteMode(true)
     , _readOnly(false)
     , _editAreaIsAscii(false)
-    , _editAreaIsBin(true)
-    , _editAreaIsHex(false)
+    , _editAreaIsBin(false)
+    , _editAreaIsHex(true)
     , _dataChunks(new DataAccess(this))
     , _cursorPosition(0)
     , _lastEventSize(0)
@@ -57,7 +56,6 @@ BinEditorViewer::BinEditorViewer(QWidget *parent) : QAbstractScrollArea(parent)
     _cursorTimer.start();
 
     setOverwriteMode(true);
-    setReadOnly(false);
 
     init();
     setFocusPolicy(Qt::StrongFocus);
@@ -180,15 +178,6 @@ bool BinEditorViewer::overwriteMode()
     return _overwriteMode;
 }
 
-bool BinEditorViewer::isReadOnly()
-{
-    return _readOnly;
-}
-
-void BinEditorViewer::setReadOnly(bool readOnly)
-{
-    _readOnly = readOnly;
-}
 
 // ********************************************************************** Access to data of qhexedit
 bool BinEditorViewer::setData(QIODevice &iODevice)
@@ -272,11 +261,6 @@ bool BinEditorViewer::isModified()
     return _modified;
 }
 
-QString BinEditorViewer::selectedData()
-{
-    QByteArray ba = _dataChunks->getData(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
-    return ba;
-}
 
 // ********************************************************************** Handle events
 void BinEditorViewer::keyPressEvent(QKeyEvent *event)
@@ -735,22 +719,6 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
             {
                 QColor c = viewport()->palette().color(QPalette::Base);
                 painter.setPen(QPen(Qt::black));
-
-                qint64 posBa = _bPosFirst + bPosLine + colIdx;
-                if ((getSelectionBegin() <= posBa) && (getSelectionEnd() > posBa))
-                {
-                    c = _brushSelection.color();
-                    painter.setPen(_penSelection);
-                }
-                else
-                {
-                    if (_highlighting)
-                        if (_markedShown.at((int)(posBa - _bPosFirst)))
-                        {
-                            c = _brushHighlighted.color();
-                            painter.setPen(_penHighlighted);
-                        }
-                }
 
                 // render hex value
                 if (_hexArea)
