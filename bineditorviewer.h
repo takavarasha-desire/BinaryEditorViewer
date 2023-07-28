@@ -50,7 +50,7 @@ public:
     void setReadOnly(bool readOnly);
 
     void setCursorPosition(std::size_t position);
-    qint64 cursorPosition();
+    std::size_t cursorPosition();
 
     QString selectedData();
 
@@ -146,7 +146,7 @@ private:
         QBuffer _bData;
         DataAccess *_dataChunks;
         QTimer _cursorTimer;
-        qint64 _cursorPosition;
+        std::size_t _cursorPosition;
         QRect _cursorRect;
         QByteArray _data;
         QByteArray _dataShown;
