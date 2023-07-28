@@ -22,7 +22,8 @@ BinEditorViewer::BinEditorViewer(QWidget *parent) : QAbstractScrollArea(parent)
     , _overwriteMode(true)
     , _readOnly(false)
     , _editAreaIsAscii(false)
-    , _editAreaIsBin(false)
+    , _editAreaIsBin(true)
+    , _editAreaIsHex(false)
     , _dataChunks(new DataAccess(this))
     , _cursorPosition(0)
     , _lastEventSize(0)
@@ -575,16 +576,14 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
 
 void BinEditorViewer::mouseMoveEvent(QMouseEvent * event)
 {
-    // 1. Delete old cursor
-    _cursorblink = false;
-    viewport()->update();
-
-    // 2. Get the current position of the mouse cursor
     std::size_t actPos = cursorPosition(event->pos());
+    if (actPos != std::numeric_limits<std::size_t>::max())
+    {
+        setCursorPosition(actPos);
+        setSelection(actPos);
+    }
 
-    // 3. Set the new cursor position and update the selection
-    setCursorPosition(actPos);
-    setSelection(actPos);
+    viewport() -> update();
 }
 
 
@@ -652,7 +651,6 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
         }
 
         // paint bin, hex and ascii area
-        //QPen colStandard = QPen(viewport()->palette().color(QPalette::WindowText));
 
         painter.setBackgroundMode(Qt::TransparentMode);
 
@@ -686,15 +684,18 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
                 }
 
                 // render hex value
-                QRect r;
-                if (colIdx == 0)
-                    r.setRect(pxPosX, pxPosY - _pxCharHeight + _pxSelectionSub, 2*_pxCharWidth, _pxCharHeight);
-                else
-                    r.setRect(pxPosX - _pxCharWidth, pxPosY - _pxCharHeight + _pxSelectionSub, 3*_pxCharWidth, _pxCharHeight);
-                painter.fillRect(r, c);
-                hex = _hexDataShown.mid((bPosLine + colIdx) * 2, 2);
-                painter.drawText(pxPosX, pxPosY, hex.toUpper());
-                pxPosX += 3*_pxCharWidth;
+                if (_hexArea)
+                {
+                    QRect r;
+                    if (colIdx == 0)
+                        r.setRect(pxPosX, pxPosY - _pxCharHeight + _pxSelectionSub, 2*_pxCharWidth, _pxCharHeight);
+                    else
+                        r.setRect(pxPosX - _pxCharWidth, pxPosY - _pxCharHeight + _pxSelectionSub, 3*_pxCharWidth, _pxCharHeight);
+                    painter.fillRect(r, c);
+                    hex = _hexDataShown.mid((bPosLine + colIdx) * 2, 2);
+                    painter.drawText(pxPosX, pxPosY, hex.toUpper());
+                    pxPosX += 3*_pxCharWidth;
+                }
 
                 // render binary value
 
