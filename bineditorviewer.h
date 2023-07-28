@@ -40,7 +40,7 @@ public:
     void replaceChar(qint64 pos, char ch);
 
 
-    qint64 cursorPosition(QPoint point);
+    std::size_t cursorPosition(const QPoint &position);
 
     void ensureVisible();
 
@@ -54,7 +54,7 @@ public:
     bool addressArea();
     qint64 addressOffset();
 
-    void setCursorPosition(qint64 position);
+    void setCursorPosition(std::size_t position);
     qint64 cursorPosition();
 
     QString selectedData();
@@ -104,7 +104,7 @@ private:
     // _px for pixel positions
         int _pxCharWidth, _pxCharHeight;            // char dimensions (dependend on font)
         int _pxPosBinX;
-        int _pxPosHexX;                             // X-Pos of HeaxArea
+        int _pxPosHexX;                             // X-Pos of Hex Area
         int _pxPosAdrX;                             // X-Pos of Address Area
         int _pxPosAsciiX;                           // X-Pos of Ascii Area
         int _pxGapAdr;                              // gap left from AddressArea

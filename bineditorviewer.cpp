@@ -22,6 +22,7 @@ BinEditorViewer::BinEditorViewer(QWidget *parent) : QAbstractScrollArea(parent)
     , _overwriteMode(true)
     , _readOnly(false)
     , _editAreaIsAscii(false)
+    , _editAreaIsBin(false)
     , _dataChunks(new DataAccess(this))
     , _cursorPosition(0)
     , _lastEventSize(0)
@@ -58,6 +59,7 @@ BinEditorViewer::BinEditorViewer(QWidget *parent) : QAbstractScrollArea(parent)
     setReadOnly(false);
 
     init();
+    setFocusPolicy(Qt::StrongFocus);
 
 }
 
@@ -78,28 +80,36 @@ qint64 BinEditorViewer::addressOffset()
     return _addressOffset;
 }
 
-void BinEditorViewer::setCursorPosition(qint64 position)
+void BinEditorViewer::setCursorPosition(std::size_t position)
 {
     // 1. delete old cursor
     _cursorblink = false;
     viewport()->update(_cursorRect);
 
-    // 2. Check, if cursor in range?
-    if (position > (_dataChunks->size() * 2 - 1))
-        position = _dataChunks->size() * 2  - (_overwriteMode ? 1 : 0);
+    // 2. Check if cursor in range and adjust if needed
+    std::size_t maxSize = static_cast<std::size_t>(_dataChunks->size()) * 2 - 1;
+    if (position > maxSize)
+        position = maxSize;
 
-    if (position < 0)
-        position = 0;
+    // No need to check for position < 0, since std::size_t is unsigned.
 
     // 3. Calc new position of cursor
     _bPosCurrent = position / 2;
     _pxCursorY = ((position / 2 - _bPosFirst) / _bytesPerLine + 1) * _pxCharHeight;
     int x = (position % (2 * _bytesPerLine));
+
     if (_editAreaIsAscii)
     {
         _pxCursorX = x / 2 * _pxCharWidth + _pxPosAsciiX;
         _cursorPosition = position & 0xFFFFFFFFFFFFFFFE; // to ensure cursor position always holds an even number
-    } else {
+    }
+    else if (_editAreaIsBin)
+    {
+        _pxCursorX = (((x / 8) * 9) + (x % 8)) * _pxCharWidth + _pxPosBinX;
+        _cursorPosition = position;
+    }
+    else
+    {
         _pxCursorX = (((x / 2) * 3) + (x % 2)) * _pxCharWidth + _pxPosHexX;
         _cursorPosition = position;
     }
@@ -115,30 +125,42 @@ void BinEditorViewer::setCursorPosition(qint64 position)
     emit currentAddressChanged(_bPosCurrent);
 }
 
-qint64 BinEditorViewer::cursorPosition(QPoint pos)
+
+std::size_t BinEditorViewer::cursorPosition(const QPoint &position)
 {
-    // Calc cursor position depending on a graphical position
-    qint64 result = -1;
-    int posX = pos.x() + horizontalScrollBar()->value();
-    int posY = pos.y() - 3;
-    if ((posX >= _pxPosHexX) && (posX < (_pxPosHexX + (1 + _hexCharsInLine) * _pxCharWidth)))
+    std::size_t pos = std::numeric_limits<std::size_t>::max();
+    std::size_t posX = static_cast<std::size_t>(position.x()) + horizontalScrollBar()->value();
+    std::size_t posY = static_cast<std::size_t>(position.y() - 3);
+
+    if (posX >= static_cast<std::size_t>(_pxPosBinX) && posX < (static_cast<std::size_t>(_pxPosBinX) + static_cast<std::size_t>(_binCharsInLine) * _pxCharWidth))
     {
-        _editAreaIsAscii = false;
-        int x = (posX - _pxPosHexX) / _pxCharWidth;
-        x = (x / 3) * 2 + x % 3;
-        int y = (posY / _pxCharHeight) * 2 * _bytesPerLine;
-        result = _bPosFirst * 2 + x + y;
+        std::size_t x = (posX - static_cast<std::size_t>(_pxPosBinX)) / _pxCharWidth;
+        x = (x / 9) * 8 + (x % 9 == 0 ? 0 : 1);
+
+        std::size_t firstLineIdx = static_cast<std::size_t>(verticalScrollBar()->value());
+        std::size_t y = (posY / _pxCharHeight) * 2 * _bytesPerLine;
+        pos = x + y + firstLineIdx * _bytesPerLine * 2;
     }
-    else
-        if (_asciiArea && (posX >= _pxPosAsciiX) && (posX < (_pxPosAsciiX + (1 + _bytesPerLine) * _pxCharWidth)))
-        {
-            _editAreaIsAscii = true;
-            int x = 2 * (posX - _pxPosAsciiX) / _pxCharWidth;
-            int y = (posY / _pxCharHeight) * 2 * _bytesPerLine;
-            result = _bPosFirst * 2 + x + y;
-        }
-    return result;
+    else if (posX >= static_cast<std::size_t>(_pxPosHexX) && posX < (static_cast<std::size_t>(_pxPosHexX) + (static_cast<std::size_t>(_bytesPerLine) * 3 - 1) * _pxCharWidth))
+    {
+        std::size_t x = (posX - static_cast<std::size_t>(_pxPosHexX)) / _pxCharWidth;
+        x = (x / 3) * 2 + (x % 3 == 0 ? 0 : 1);
+
+        std::size_t firstLineIdx = static_cast<std::size_t>(verticalScrollBar()->value());
+        std::size_t y = (posY / _pxCharHeight) * 2 * _bytesPerLine;
+        pos = x + y + firstLineIdx * _bytesPerLine * 2;
+    }
+    else if (posX >= static_cast<std::size_t>(_pxPosAsciiX) && posX < (static_cast<std::size_t>(_pxPosAsciiX) + (static_cast<std::size_t>(_bytesPerLine) + 1) * _pxCharWidth))
+    {
+        std::size_t firstLineIdx = static_cast<std::size_t>(verticalScrollBar()->value());
+        std::size_t x = 2 * (posX - static_cast<std::size_t>(_pxPosAsciiX)) / _pxCharWidth;
+        std::size_t y = (posY / _pxCharHeight) * 2 * _bytesPerLine;
+        pos = x + y + firstLineIdx * _bytesPerLine * 2;
+    }
+
+    return pos;
 }
+
 
 qint64 BinEditorViewer::cursorPosition()
 {
@@ -247,9 +269,13 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
     // Cursor movements
     if (event->matches(QKeySequence::MoveToNextChar))
     {
-        qint64 pos = _cursorPosition + 1;
+        std::size_t pos = _cursorPosition + 1;
         if (_editAreaIsAscii)
             pos += 1;
+
+        else if (_editAreaIsBin)
+            pos = _cursorPosition + 8;
+
         setCursorPosition(pos);
         resetSelection(pos);
     }
@@ -261,6 +287,9 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
         setCursorPosition(pos);
         resetSelection(pos);
     }
+
+
+
     if (event->matches(QKeySequence::MoveToEndOfLine))
     {
         qint64 pos = _cursorPosition - (_cursorPosition % (2 * _bytesPerLine)) + (2 * _bytesPerLine) - 1;
@@ -445,8 +474,32 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
 
             if (_editAreaIsBin)
             {
+                // Binary input
+                int key = 0;
+                QString text = event->text();
+                if (!text.isEmpty())
+                {
+                    // Ensure the input is a valid binary character ('0' or '1')
+                    if (text == "0" || text == "1")
+                    {
+                        key = text.toInt();
+                        int bitOffset = _cursorPosition % 8; // Calculate the bit offset within the byte
 
+                        // If insert mode, then insert a byte
+                        if (!_overwriteMode && bitOffset == 0)
+                            insertChar(_bPosCurrent, char(0));
+
+                        // Update the corresponding bit in the current byte
+                        char currentValue = _dataShown.at(_bPosCurrent);
+                        char newValue = (currentValue & ~(1 << (7 - bitOffset))) | (key << (7 - bitOffset)); // will check
+                        replaceChar(_bPosCurrent, newValue);
+
+                        setCursorPosition(_cursorPosition + 1);
+                        resetSelection(_cursorPosition);
+                    }
+                }
             }
+
 
             if ((((key >= '0' && key <= '9') || (key >= 'a' && key <= 'f')) && _editAreaIsAscii == false)
                 || (key >= ' ' && _editAreaIsAscii))
@@ -522,27 +575,37 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
 
 void BinEditorViewer::mouseMoveEvent(QMouseEvent * event)
 {
+    // 1. Delete old cursor
     _cursorblink = false;
     viewport()->update();
-    qint64 actPos = cursorPosition(event->pos());
-    if (actPos >= 0)
-    {
-        setCursorPosition(actPos);
-        setSelection(actPos);
-    }
+
+    // 2. Get the current position of the mouse cursor
+    std::size_t actPos = cursorPosition(event->pos());
+
+    // 3. Set the new cursor position and update the selection
+    setCursorPosition(actPos);
+    setSelection(actPos);
 }
+
 
 void BinEditorViewer::mousePressEvent(QMouseEvent * event)
 {
     _cursorblink = false;
-    viewport()->update();
-    qint64 cPos = cursorPosition(event->pos());
-    if (cPos >= 0)
+
+    std::size_t cPos = cursorPosition(event->pos());
+
+    if((QApplication::keyboardModifiers() & Qt::ShiftModifier) && event -> button() == Qt::LeftButton)
+        setSelection(cPos);
+    else
+        resetSelection(cPos);
+
+    if (cPos != std::numeric_limits<std::size_t>::max())
     {
         if (event->button() != Qt::RightButton)
             resetSelection(cPos);
         setCursorPosition(cPos);
     }
+    viewport()->update();
 }
 
 void BinEditorViewer::paintEvent(QPaintEvent *event)
@@ -639,6 +702,9 @@ void BinEditorViewer::paintEvent(QPaintEvent *event)
                 {
                     QRect rb;
                     uchar byte = (uchar)_dataShown.at(bPosLine + colIdx);
+
+
+                    rb.setRect(pxPosBinX2, pxPosY - _pxCharHeight + _pxSelectionSub, 9*_pxCharWidth, _pxCharHeight);
 
                     painter.fillRect(rb, c);
                     QString bin = QString::number(byte, 2).rightJustified(8, '0'); // Convert byte to binary string
@@ -796,34 +862,112 @@ void BinEditorViewer::resetSelection()
 
 void BinEditorViewer::resetSelection(qint64 pos)
 {
-    pos = pos / 2 ;
-    if (pos < 0)
-        pos = 0;
-    if (pos > _dataChunks->size())
-        pos = _dataChunks->size();
+    if(_editAreaIsBin)
+    {
+        int bitOffset = pos % 8; // Calculate the bit offset within the byte
+        pos /= 8; // Convert to byte index
 
-    _bSelectionInit = pos;
-    _bSelectionBegin = pos;
-    _bSelectionEnd = pos;
+        if (pos < 0)
+            pos = 0;
+        if (pos > _dataChunks->size())
+            pos = _dataChunks->size();
+
+        _bSelectionInit = pos * 8 + bitOffset;
+        _bSelectionBegin = _bSelectionInit;
+        _bSelectionEnd = _bSelectionInit;
+    } else if (_editAreaIsHex)
+    {
+        //int hexCharsInLine = 2 * _bytesPerLine;
+        pos = (pos - _bPosFirst) * 2;
+
+        if (pos < 0)
+            pos = 0;
+        if (pos > _hexDataShown.size())
+            pos = _hexDataShown.size();
+
+        _bSelectionInit = pos;
+        _bSelectionBegin = _bSelectionInit;
+        _bSelectionEnd = _bSelectionInit;
+
+    } else if (_editAreaIsAscii)
+    {
+        pos = (pos - _bPosFirst) * 2;
+
+        if (pos < 0)
+            pos = 0;
+        if (pos > _dataShown.size())
+            pos = _dataShown.size();
+
+        _bSelectionInit = pos;
+        _bSelectionBegin = _bSelectionInit;
+        _bSelectionEnd = _bSelectionInit;
+
+    }
 }
 
 void BinEditorViewer::setSelection(qint64 pos)
 {
-    pos = pos / 2;
-    if (pos < 0)
-        pos = 0;
-    if (pos > _dataChunks->size())
-        pos = _dataChunks->size();
+    if (_editAreaIsBin)
+    {
+        int bitOffset = pos % 8; // Calculate the bit offset within the byte
+        pos /= 8; // Convert to byte index
 
-    if (pos >= _bSelectionInit)
-    {
-        _bSelectionEnd = pos;
-        _bSelectionBegin = _bSelectionInit;
+        if (pos < 0)
+            pos = 0;
+        if (pos > _dataChunks->size())
+            pos = _dataChunks->size();
+
+        if (pos >= _bSelectionInit)
+        {
+            _bSelectionEnd = pos * 8 + bitOffset;
+            _bSelectionBegin = _bSelectionInit;
+        }
+        else
+        {
+            _bSelectionBegin = pos * 8 + bitOffset;
+            _bSelectionEnd = _bSelectionInit;
+        }
     }
-    else
+    else if (_editAreaIsHex)
     {
-        _bSelectionBegin = pos;
-        _bSelectionEnd = _bSelectionInit;
+        //int hexCharsInLine = 2 * _bytesPerLine;
+        pos = (pos - _bPosFirst) * 2;
+
+        if (pos < 0)
+            pos = 0;
+        if (pos > _hexDataShown.size())
+            pos = _hexDataShown.size();
+
+        if (pos >= _bSelectionInit)
+        {
+            _bSelectionEnd = pos;
+            _bSelectionBegin = _bSelectionInit;
+        }
+        else
+        {
+            _bSelectionBegin = pos;
+            _bSelectionEnd = _bSelectionInit;
+        }
+    }
+    else if (_editAreaIsAscii)
+    {
+        pos = (pos - _bPosFirst) * 2;
+
+        if (pos < 0)
+            pos = 0;
+        if (pos > _dataShown.size())
+            pos = _dataShown.size();
+
+        if (pos >= _bSelectionInit)
+        {
+            _bSelectionEnd = pos;
+            _bSelectionBegin = _bSelectionInit;
+        }
+        else
+        {
+            _bSelectionBegin = pos;
+            _bSelectionEnd = _bSelectionInit;
+        }
     }
 }
 
