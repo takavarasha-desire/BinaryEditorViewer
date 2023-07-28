@@ -70,17 +70,6 @@ BinEditorViewer::~BinEditorViewer()
 
 // ********************************************************************** Properties
 
-
-bool BinEditorViewer::addressArea()
-{
-    return _addressArea;
-}
-
-qint64 BinEditorViewer::addressOffset()
-{
-    return _addressOffset;
-}
-
 void BinEditorViewer::setCursorPosition(std::size_t position)
 {
     // 1. delete old cursor

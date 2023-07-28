@@ -49,11 +49,6 @@ public:
     bool isReadOnly();
     void setReadOnly(bool readOnly);
 
-
-
-    bool addressArea();
-    qint64 addressOffset();
-
     void setCursorPosition(std::size_t position);
     qint64 cursorPosition();
 
