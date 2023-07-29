@@ -119,36 +119,43 @@ void BinEditorViewer::setCursorPosition(std::size_t position)
 
 qint64 BinEditorViewer::cursorPosition(QPoint pos)
 {
-    // Calc cursor position depending on a graphical position
-    qint64 result = -1;
     int posX = pos.x() + horizontalScrollBar()->value();
     int posY = pos.y() - 3;
-    if ((posX >= _pxPosHexX) && (posX < (_pxPosHexX + (1 + _hexCharsInLine) * _pxCharWidth)))
+    int result = -1; // Initialize result to indicate invalid position
+
+    if (posY < 0) // Handle cases where posY is above the editor area
+        return result;
+
+    if (posX >= _pxPosHexX && posX < (_pxPosHexX + (1 + _hexCharsInLine) * _pxCharWidth))
     {
+        // Hex Area
         _editAreaIsAscii = false;
         _editAreaIsBin = false;
         int x = (posX - _pxPosHexX) / _pxCharWidth;
         x = (x / 3) * 2 + x % 3;
-        int y = (posY / _pxCharHeight) * 2 * _bytesPerLine;
+        int y = posY / _pxCharHeight * 2 * _bytesPerLine;
         result = _bPosFirst * 2 + x + y;
     }
-    else if (_asciiArea && (posX >= _pxPosAsciiX) && (posX < (_pxPosAsciiX + (1 + _bytesPerLine) * _pxCharWidth)))
+    else if (_asciiArea && posX >= _pxPosAsciiX && posX < (_pxPosAsciiX + (1 + _bytesPerLine) * _pxCharWidth))
     {
+        // ASCII Area
         _editAreaIsHex = false;
         _editAreaIsBin = false;
         int x = 2 * (posX - _pxPosAsciiX) / _pxCharWidth;
-        int y = (posY / _pxCharHeight) * 2 * _bytesPerLine;
+        int y = posY / _pxCharHeight * 2 * _bytesPerLine;
         result = _bPosFirst * 2 + x + y;
     }
-    else if (_binArea && (posX >= _pxPosBinX) && (posX < (_pxPosBinX + (1 + _binCharsInLine) * _pxCharWidth)))
+    else if (_binArea && posX >= _pxPosBinX && posX < (_pxPosBinX + (1 + _binCharsInLine) * _pxCharWidth))
     {
+        // Binary Area
         _editAreaIsHex = false;
         _editAreaIsAscii = false;
         int x = 4 * (posX - _pxPosBinX) / _pxCharWidth;
         x = (x / 9) * 8 + x % 9;
-        int y = (posY / _pxCharHeight) * 2 * _bytesPerLine;
+        int y = posY / _pxCharHeight * 2 * _bytesPerLine;
         result = _bPosFirst * 2 + x + y;
     }
+
     return result;
 }
 
