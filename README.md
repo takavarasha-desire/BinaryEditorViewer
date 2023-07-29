@@ -16,4 +16,6 @@ After downloading Qt.
 * Click the green "Run" button or select "Build" from the build menu to compile the project
 * The platform specific executable can be found in the build-folder
 * macdeployqt or linuxdeployqt can be used to bundle the application with all its dependencies in the release folder
+* See https://www.youtube.com/watch?v=2B--nzfoQ9s on using linuxdeployqt.
+* See https://www.youtube.com/watch?v=ANlXFtyARS4 on using macdeployqt.
 * The bundled application image for Windows 64 bit can be found here: https://github.com/takavarasha-desire/BinaryEditorViewer/blob/main/BinaryEditorViewer.zip
