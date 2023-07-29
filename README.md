@@ -4,4 +4,4 @@
  It allows the editing of binary data in hex format currently and ascii and binary displays are updated 
  accordingly. Inspired by Winfred Simon's QHexEdit. 
  
- ![Alt text](../../Pictures/Screenshots/bineditorviewer.png)
+![bineditorviewer](https://github.com/takavarasha-desire/BinaryEditorViewer/assets/94230493/81bea4f4-126b-4709-a0d2-1e93a5e35775)
