@@ -34,7 +34,7 @@ void MainWindow::about()
 {
    QMessageBox::about(this, tr("About Binary Editor"),
             tr("Binary Editor Viewer Widget. Allows the editing of binary Data in hex format currently"
-               "Strongly inspired by Winfried Simon's QHexEdit https://github.com/Simsys/qhexedit2/tree/master"));
+               " Strongly inspired by Winfried Simon's QHexEdit https://github.com/Simsys/qhexedit2/tree/master"));
 }
 
 void MainWindow::dataChanged()
