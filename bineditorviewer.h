@@ -40,7 +40,7 @@ public:
     void replaceChar(qint64 pos, char ch);
 
 
-    std::size_t cursorPosition(const QPoint &position);
+    qint64 cursorPosition(QPoint pos);
 
     void ensureVisible();
 
