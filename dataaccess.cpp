@@ -43,7 +43,7 @@ bool DataAccess::setIODevice(QIODevice &ioDevice)
     return ok;
 }
 
-// ***************************************** Getting data out of Chunks
+// ***************************************** Getting data through DataAccess class
 
 QByteArray DataAccess::getData(qint64 pos, qint64 maxSize, QByteArray *highlighted)
 {
@@ -145,7 +145,7 @@ bool DataAccess::write(QIODevice &iODevice, qint64 pos, qint64 count)
 }
 
 
-// ***************************************** Set and get highlighting infos
+// ***************************************** Data watching
 
 void DataAccess::setDataChanged(qint64 pos, bool dataChanged)
 {

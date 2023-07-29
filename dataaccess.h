@@ -30,7 +30,7 @@ public:
     QByteArray getData(qint64 pos=0, qint64 count=-1, QByteArray *highlighted=0);
     bool write(QIODevice &iODevice, qint64 pos=0, qint64 count=-1);
 
-    // Set and get highlighting infos
+    // Data Watching
     void setDataChanged(qint64 pos, bool dataChanged);
     bool dataChanged(qint64 pos);
 

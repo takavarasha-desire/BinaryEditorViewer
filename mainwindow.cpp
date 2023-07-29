@@ -25,7 +25,6 @@ MainWindow::MainWindow()
 // Protected
 void MainWindow::closeEvent(QCloseEvent *)
 {
-    writeSettings();
 }
 
 
@@ -34,7 +33,7 @@ void MainWindow::closeEvent(QCloseEvent *)
 void MainWindow::about()
 {
    QMessageBox::about(this, tr("About Binary Editor"),
-            tr("Binary Editor Viewer Widget."));
+            tr("Binary Editor Viewer Widget. Allows the editing of binary Data in hex format currently"));
 }
 
 void MainWindow::dataChanged()
@@ -271,9 +270,3 @@ QString MainWindow::strippedName(const QString &fullFileName)
     return QFileInfo(fullFileName).fileName();
 }
 
-void MainWindow::writeSettings()
-{
-    QSettings settings;
-    settings.setValue("pos", pos());
-    settings.setValue("size", size());
-}

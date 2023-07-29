@@ -45,7 +45,7 @@ private:
     bool saveFile(const QString &fileName);
     void setCurrentFile(const QString &fileName);
     QString strippedName(const QString &fullFileName);
-    void writeSettings();
+
 
     QString curFile;
     QFile file;
