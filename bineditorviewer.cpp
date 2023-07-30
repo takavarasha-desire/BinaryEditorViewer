@@ -621,7 +621,9 @@ void BinEditorViewer::keyPressEvent(QKeyEvent *event)
 
                             // Update the corresponding bit in the current byte
                             char currentValue = _dataShown.at(_bPosCurrent);
-                            char newValue = (currentValue & ~(1 << (7 - bitOffset))) | (key << (7 - bitOffset)); // will check
+
+                            // Using bitmasking to update the bit to be rewritten
+                            char newValue = (currentValue & ~(1 << (7 - bitOffset))) | (key << (7 - bitOffset));
                             replaceChar(_bPosCurrent, newValue);
 
                             setCursorPosition(_cursorPosition + 1);
@@ -924,7 +926,7 @@ bool BinEditorViewer::focusNextPrevChild(bool next)
 
 }
 
-// ********************************************************************** Handle selections
+// Handle selections
 void BinEditorViewer::resetSelection()
 {
     _bSelectionBegin = _bSelectionInit;
@@ -1052,7 +1054,7 @@ qint64 BinEditorViewer::getSelectionEnd()
     return _bSelectionEnd;
 }
 
-// ********************************************************************** Private utility functions
+//  Private utility functions
 void BinEditorViewer::init()
 {
 
