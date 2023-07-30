@@ -4,7 +4,10 @@
 #define NORMAL 0
 #define DATACHUNK_SIZE 0x1000
 
-#define READ_DATACHUNK_MASK Q_INT64_C(0xfffffffffffff000) // round off to 4096 in decimal form (2^12)
+
+// the standard page size used in memory management.
+// round off to 4096 in decimal form (2^12)
+#define READ_DATACHUNK_MASK Q_INT64_C(0xfffffffffffff000)
 
 // File systems and storage devices allocation units are multiples 64KB
 #define BUFFER_SIZE 0x10000     // 64KB
@@ -32,7 +35,7 @@ bool DataAccess::setIODevice(QIODevice &ioDevice)
         _size = _ioDevice->size();
         _ioDevice->close();
     }
-    else                                        // Fallback is an empty buffer
+    else
     {
         QBuffer *buf = new QBuffer(this);
         _ioDevice = buf;
@@ -103,8 +106,7 @@ QByteArray DataAccess::getData(qint64 pos, qint64 maxSize, QByteArray *highlight
 
         if ((maxSize > 0) && (pos < dataChunk.absPos))
         {
-            // In this section, we read data from the original source. This only will
-            // happen, whe no copied data is available
+            // Reading data from the original source when no copied data is present.
 
             qint64 byteCount;
             QByteArray readBuffer;
@@ -231,10 +233,9 @@ qint64 DataAccess::size()
 }
 
 int DataAccess::getChunkIndex(qint64 absPos)
-{
-    // This routine checks, if there is already a copied chunk available. If os, it
-    // returns a reference to it. If there is no copied chunk available, original
-    // data will be copied into a new chunk.
+{   
+    // checking for datachunks, if available returns a pointer to it otherwise
+    // it is copied to a new datachunk.
 
     int foundIdx = -1;
     int insertIdx = 0;

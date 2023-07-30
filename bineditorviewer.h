@@ -92,21 +92,21 @@ private:
 
 
     // _px for pixel positions
-        int _pxCharWidth, _pxCharHeight;            // char dimensions (dependend on font)
-        int _pxPosBinX;
+        int _pxCharWidth, _pxCharHeight;            // char dimensions
+        int _pxPosBinX;                             // X-Pos of Bin Area
         int _pxPosHexX;                             // X-Pos of Hex Area
         int _pxPosAdrX;                             // X-Pos of Address Area
         int _pxPosAsciiX;                           // X-Pos of Ascii Area
-        int _pxGapAdr;                              // gap left from AddressArea
-        int _pxGapAdrBin;
-        int _pxGapBinHex;
-        int _pxGapHexAscii;                         // gap between HexArea and AsciiArea
+        int _pxGapAdr;                              // gap on the left of Address
+        int _pxGapAdrBin;                           // gap between Adr and Bin Area
+        int _pxGapBinHex;                           // gap between Bin and Hex Area
+        int _pxGapHexAscii;                         // gap between Hex and Ascii Area
         int _pxCursorWidth;                         // cursor width
         int _pxSelectionSub;                        // offset selection rect
         int _pxCursorX;                             // current cursor pos
         int _pxCursorY;                             // current cursor pos
 
-        // _b for absolute byte positions in _dataChunsk
+        // _b for absolute byte positions in _dataChunk
         qint64 _bSelectionBegin;
         qint64 _bSelectionEnd;
         qint64 _bSelectionInit;

@@ -7,7 +7,7 @@
 #include <QScrollBar>
 
 
-// ********************************************************************** Constructor, destructor
+// Constructor, destructor
 
 BinEditorViewer::BinEditorViewer(QWidget *parent) : QAbstractScrollArea(parent)
     , _addressArea(true)
@@ -62,7 +62,7 @@ BinEditorViewer::~BinEditorViewer()
 {
 }
 
-// ********************************************************************** Properties
+//  Properties
 
 void BinEditorViewer::setCursorPosition(std::size_t position)
 {
@@ -190,7 +190,7 @@ bool BinEditorViewer::overwriteMode()
 }
 
 
-// ********************************************************************** accessing data
+// accessing data
 bool BinEditorViewer::setData(QIODevice &iODevice)
 {
     bool ok = _dataChunks->setIODevice(iODevice);
@@ -209,7 +209,7 @@ bool BinEditorViewer::write(QIODevice &iODevice, qint64 pos, qint64 count)
     return _dataChunks->write(iODevice, pos, count);
 }
 
-// ********************************************************************** Char handling
+//  Char handling
 void BinEditorViewer::insertChar(qint64 index, char ch)
 {
     _dataChunks->insertChar(index, ch);
@@ -228,7 +228,7 @@ void BinEditorViewer::replaceChar(qint64 index, char ch)
     refresh();
 }
 
-// ********************************************************************** Utility functions
+//  Utility functions
 void BinEditorViewer::ensureVisible()
 {
     if (_cursorPosition < static_cast<std::size_t>(_bPosFirst * 2))
@@ -273,7 +273,7 @@ bool BinEditorViewer::isModified()
 }
 
 
-// ********************************************************************** Handle events
+//  Handle events
 void BinEditorViewer::keyPressEvent(QKeyEvent *event)
 {
     // Cursor movements
