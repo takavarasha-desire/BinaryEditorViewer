@@ -1,7 +1,4 @@
 # BinaryEditorViewer
-A Binary Viewer Editor project for the C++ course at IU Univerisity of Applied Sciences showing binary data in binary, hex and ascii format. The Editor allows editing of data in hex format currently and all the other field  are updated accordingly
-# BinaryEditorViewer
-
  The BinaryEditorViewer allows the visualisation of Binary data, in binary, hexedecimal and ascii format
  It allows the editing of binary data in hex format currently and ascii and binary displays are updated 
  accordingly. Inspired by Winfred Simon's QHexEdit. 
